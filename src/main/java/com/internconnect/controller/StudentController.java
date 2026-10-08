@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("/api/student")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('STUDENT')")

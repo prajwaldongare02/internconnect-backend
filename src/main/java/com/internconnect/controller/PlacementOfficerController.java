@@ -24,6 +24,7 @@ import org.springframework.security.core.Authentication;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("/api/officer")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('PLACEMENT_OFFICER', 'ADMIN')")
