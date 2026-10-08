@@ -1,0 +1,5 @@
+uploads/resumes/
+*.log
+target/
+.idea/
+.vscode/
