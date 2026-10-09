@@ -20,6 +20,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        System.out.println(">>> AUTH LOOKUP FOR EMAIL: " + email + " <<<");
+
         // Try Student
         var student = studentRepository.findByEmail(email);
         if (student.isPresent()) {
@@ -50,6 +52,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         // Try Admin
         var admin = adminRepository.findByEmail(email);
         if (admin.isPresent()) {
+            System.out.println(">>> ADMIN RECORD FOUND IN DB FOR: " + email + " <<<");
             return buildUserDetails(admin.get().getEmail(),
                     admin.get().getPassword(),
                     admin.get().getRole().name(),
@@ -60,10 +63,16 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     private UserDetails buildUserDetails(String email, String password, String role, boolean enabled) {
+        // Strip "ROLE_" prefix if role already contains it to prevent "ROLE_ROLE_ADMIN"
+        String roleName = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+
         return User.builder()
                 .username(email)
                 .password(password)
-                .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + role)))
+                .authorities(List.of(new SimpleGrantedAuthority(roleName)))
+                .accountExpired(false)
+                .accountLocked(false)
+                .credentialsExpired(false)
                 .disabled(!enabled)
                 .build();
     }
