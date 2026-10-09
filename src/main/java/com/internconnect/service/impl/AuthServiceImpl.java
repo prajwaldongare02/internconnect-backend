@@ -110,7 +110,6 @@ public class AuthServiceImpl implements AuthService {
                 .name(company.getName())
                 .build();
     }
-
     @Override
     public AuthResponse login(LoginRequest request) {
         try {
@@ -121,8 +120,17 @@ public class AuthServiceImpl implements AuthService {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String token = jwtUtil.generateToken(userDetails);
 
-            // Determine user info from role
-            String role = request.getRole().toUpperCase();
+            // Safely determine role from request OR from GrantedAuthorities
+            String role = request.getRole();
+            if (role == null || role.isBlank()) {
+                role = userDetails.getAuthorities().stream()
+                        .findFirst()
+                        .map(a -> a.getAuthority().replace("ROLE_", ""))
+                        .orElse("STUDENT");
+            } else {
+                role = role.toUpperCase();
+            }
+
             Long userId = null;
             String name = "";
             String college = null;
@@ -141,7 +149,7 @@ public class AuthServiceImpl implements AuthService {
                     userId = company.getId();
                     name = company.getName();
                 }
-                case "PLACEMENT_OFFICER" -> {
+                case "PLACEMENT_OFFICER", "OFFICER" -> {
                     var officer = officerRepository.findByEmail(request.getEmail())
                             .orElseThrow(() -> new BadRequestException("Officer not found"));
                     userId = officer.getId();
@@ -171,6 +179,9 @@ public class AuthServiceImpl implements AuthService {
             throw ex;
         }
     }
+
+
+
 
     private boolean emailExistsAcrossAll(String email) {
         return studentRepository.existsByEmail(email)
