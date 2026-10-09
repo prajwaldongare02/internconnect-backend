@@ -120,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String token = jwtUtil.generateToken(userDetails);
 
-            // Safely determine role from request OR from GrantedAuthorities
+            // Extract role from request OR dynamically fallback to GrantedAuthorities
             String role = request.getRole();
             if (role == null || role.isBlank()) {
                 role = userDetails.getAuthorities().stream()
