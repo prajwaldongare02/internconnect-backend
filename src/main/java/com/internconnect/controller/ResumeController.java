@@ -1,38 +1,36 @@
 package com.internconnect.controller;
 
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import com.internconnect.service.CloudinaryService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.net.MalformedURLException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "*")
 @RequestMapping("/api/resumes")
+@RequiredArgsConstructor
 public class ResumeController {
 
-    private final Path uploadDirectory = Paths.get("uploads", "resumes").toAbsolutePath().normalize();
+    private final CloudinaryService cloudinaryService;
 
-    @GetMapping("/{filename:.+}")
-    public ResponseEntity<Resource> viewResume(@PathVariable String filename) throws MalformedURLException {
-        Path file = uploadDirectory.resolve(filename).normalize();
-        if (!file.getParent().equals(uploadDirectory) || !file.getFileName().toString().toLowerCase().endsWith(".pdf")) {
-            return ResponseEntity.notFound().build();
+    @PostMapping("/upload")
+    public ResponseEntity<?> uploadResume(@RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Please select a file to upload"));
+            }
+
+            // 1. Upload to Cloudinary using your new service
+            String resumeUrl = cloudinaryService.uploadResume(file);
+
+            // 2. Return the Cloudinary HTTPS URL back to React
+            return ResponseEntity.ok(Map.of("url", resumeUrl));
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Failed to upload file: " + e.getMessage()));
         }
-
-        Resource resource = new UrlResource(file.toUri());
-        if (!resource.exists() || !resource.isReadable()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
-                .body(resource);
     }
 }

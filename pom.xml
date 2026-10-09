@@ -32,6 +32,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.cloudinary</groupId>
+            <artifactId>cloudinary-http44</artifactId>
+            <version>1.36.0</version>
+        </dependency>
 
         <!-- Spring Data JPA -->
         <dependency>
@@ -76,6 +81,7 @@
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
+
 
         <!-- Lombok -->
         <dependency>
