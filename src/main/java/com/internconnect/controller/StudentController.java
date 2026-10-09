@@ -11,8 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.http.MediaType;
 
 import java.util.List;
 
@@ -40,19 +38,14 @@ public class StudentController {
         return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", updated));
     }
 
-    @PostMapping(value = "/apply", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    // CHANGED: Accepts JSON body instead of Multipart file
+    @PostMapping("/apply")
     public ResponseEntity<ApiResponse<ApplicationResponse>> applyForInternship(
-            @RequestParam("internshipId") Long internshipId,
-            @RequestParam(value = "coverLetter", required = false) String coverLetter,
-            @RequestPart("resume") MultipartFile resume,
+            @RequestBody ApplicationRequest request,
             Authentication authentication) {
         Student student = studentService.getStudentByEmail(authentication.getName());
 
-        ApplicationRequest request = new ApplicationRequest();
-        request.setInternshipId(internshipId);
-        request.setCoverLetter(coverLetter);
-
-        ApplicationResponse application = applicationService.applyForInternship(student.getId(), request, resume);
+        ApplicationResponse application = applicationService.applyForInternship(student.getId(), request);
         return ResponseEntity.ok(ApiResponse.success("Application submitted successfully", application));
     }
 

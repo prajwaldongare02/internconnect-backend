@@ -8,7 +8,7 @@ import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface ApplicationService {
-    ApplicationResponse applyForInternship(Long studentId, ApplicationRequest request, MultipartFile resume);
+    ApplicationResponse applyForInternship(Long studentId, ApplicationRequest request);
     ApplicationResponse getApplicationById(Long id);
     List<ApplicationResponse> getApplicationsByStudent(Long studentId);
     List<ApplicationResponse> getApplicationsByInternship(Long internshipId);

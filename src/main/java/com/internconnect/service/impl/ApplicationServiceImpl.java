@@ -12,22 +12,13 @@ import com.internconnect.repository.CollegeInternshipApprovalRepository;
 import com.internconnect.repository.InternshipRepository;
 import com.internconnect.repository.StudentRepository;
 import com.internconnect.service.ApplicationService;
-import com.internconnect.service.ResumeStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Every public method here returns ApplicationResponse DTOs, built while
- * the transactional session is still open, rather than the Application
- * entity itself (whose `student` and `internship` associations are LAZY
- * and would throw LazyInitializationException if Jackson tried to read
- * them after the session closes — see InternshipServiceImpl for details).
- */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -37,10 +28,9 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final StudentRepository studentRepository;
     private final InternshipRepository internshipRepository;
     private final CollegeInternshipApprovalRepository approvalRepository;
-    private final ResumeStorageService resumeStorageService;
 
     @Override
-    public ApplicationResponse applyForInternship(Long studentId, ApplicationRequest request, MultipartFile resume) {
+    public ApplicationResponse applyForInternship(Long studentId, ApplicationRequest request) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
 
@@ -69,24 +59,20 @@ public class ApplicationServiceImpl implements ApplicationService {
         String studentCollege = student.getCollege();
         if (studentCollege == null || studentCollege.isBlank()
                 || approvalRepository.findByInternshipIdAndCollege(request.getInternshipId(), studentCollege.trim())
-                    .filter(a -> a.getStatus() == com.internconnect.entity.CollegeInternshipApproval.ApprovalStatus.APPROVED)
-                    .isEmpty()) {
+                .filter(a -> a.getStatus() == com.internconnect.entity.CollegeInternshipApproval.ApprovalStatus.APPROVED)
+                .isEmpty()) {
             throw new BadRequestException("This internship has not been opened for your college");
         }
 
-        if (resume == null || resume.isEmpty()) {
-            throw new BadRequestException("Resume PDF is required to apply");
+        if (request.getResumeUrl() == null || request.getResumeUrl().isBlank()) {
+            throw new BadRequestException("Resume URL is required to apply");
         }
-
-        // Validate the application rules first. Only after the application is
-        // known to be valid do we persist the selected resume locally.
-        String resumeUrl = resumeStorageService.store(resume);
 
         Application application = Application.builder()
                 .student(student)
                 .internship(internship)
                 .coverLetter(request.getCoverLetter())
-                .resumeUrl(resumeUrl)
+                .resumeUrl(request.getResumeUrl())
                 .status(Application.ApplicationStatus.PENDING)
                 .build();
 
@@ -128,10 +114,6 @@ public class ApplicationServiceImpl implements ApplicationService {
             return List.of();
         }
 
-        // A TPO may see applications only for internships that this TPO
-        // explicitly opened for their own college. This keeps the college
-        // boundary intact even when the same company internship is opened
-        // for several different colleges.
         List<Long> approvedInternshipIds = approvalRepository
                 .findByCollegeAndStatus(college.trim(), com.internconnect.entity.CollegeInternshipApproval.ApprovalStatus.APPROVED)
                 .stream()
@@ -201,8 +183,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         Long internshipId = application.getInternship() != null ? application.getInternship().getId() : null;
         if (internshipId == null
                 || approvalRepository.findByInternshipIdAndCollege(internshipId, normalizedCollege)
-                    .filter(a -> a.getStatus() == com.internconnect.entity.CollegeInternshipApproval.ApprovalStatus.APPROVED)
-                    .isEmpty()) {
+                .filter(a -> a.getStatus() == com.internconnect.entity.CollegeInternshipApproval.ApprovalStatus.APPROVED)
+                .isEmpty()) {
             throw new BadRequestException("This internship is not opened for your college");
         }
         if (application.getStatus() == Application.ApplicationStatus.WITHDRAWN) {
